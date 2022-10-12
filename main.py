@@ -102,6 +102,7 @@ class NewWindow(QMainWindow, Ui_MainWindow):
                     stream = yt.streams.filter(only_audio= True, file_extension='mp4').last() #order_by('resolution')
                 stream.download(self.le_Caminho.text())
             elif (self.rb_Mp3.isChecked()):
+                stream = yt.streams.filter(only_audio= True, file_extension='mp4').last()
                 stream.download(self.le_Caminho.text(), filename = f'{yt.title}.mp3')
         except Exception:
             mensagem = QMessageBox()
