@@ -4,12 +4,16 @@ Created on Mon Oct 10 17:33:49 2022
 
 @author: Everton Castro
 """
-from sys import argv
+from sys import argv, exit
 from pytube import YouTube
+from Design.Splash_Intro import *
 from Design.Design import *
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 from PyQt5 import QtGui
 from re import search
+import time 
+
+
 
 class NewWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None):
@@ -113,10 +117,23 @@ class NewWindow(QMainWindow, Ui_MainWindow):
             mensagem.setStandardButtons(QMessageBox.Ok)
             mensagem.setText('Ocorreu algum erro, verifique o link de download ou o caminho da pasta')
             mensagem.exec()
-            
+   
+class Intro(QMainWindow, Splash_Intro):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        super().setupUi(self)
+        self.show()
+        self.setWindowIcon(QtGui.QIcon('Icon.png'))
+        self.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.progresso()
+        self.close()
         
+    def progresso(self):       
+        self.main = NewWindow()
+        self.main.show()
+
 if __name__ == '__main__':
     qt = QApplication(argv)
-    window = NewWindow() 
-    window.show()
-    qt.exec()
+    window = Intro() 
+    exit(qt.exec_())
