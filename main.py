@@ -15,6 +15,9 @@ import time
 
 
 
+counter = 0
+
+
 class NewWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -82,14 +85,7 @@ class NewWindow(QMainWindow, Ui_MainWindow):
         total_size = vid.filesize
         bytes_downloaded = total_size - bytes_remaining
         percentage_of_completion = bytes_downloaded / total_size * 100
-        totalsz = (total_size/1024)/1024
-        totalsz = round(totalsz,1)
-        remain = (bytes_remaining / 1024) / 1024
-        remain = round(remain, 1)
-        dwnd = (bytes_downloaded / 1024) / 1024
-        dwnd = round(dwnd, 1)
         percentage_of_completion = round(percentage_of_completion,2)
-        #print(f'Download Progress: {percentage_of_completion}%, Total Size:{totalsz} MB, Downloaded: {dwnd} MB, Remaining:{remain} MB')
         self.progressBar.setProperty("value", percentage_of_completion)
 
     def complete_callback(self, stream, file_handle):
@@ -108,6 +104,7 @@ class NewWindow(QMainWindow, Ui_MainWindow):
             elif (self.rb_Mp3.isChecked()):
                 stream = yt.streams.filter(only_audio= True, file_extension='mp4').last()
                 stream.download(self.le_Caminho.text(), filename = f'{yt.title}.mp3')
+                
         except Exception:
             mensagem = QMessageBox()
             mensagem.setWindowTitle('Alerta')      
@@ -122,18 +119,26 @@ class Intro(QMainWindow, Splash_Intro):
     def __init__(self, parent = None):
         super().__init__(parent)
         super().setupUi(self)
-        self.show()
         self.setWindowIcon(QtGui.QIcon('Icon.png'))
         self.setWindowFlag(QtCore.Qt.FramelessWindowHint)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-        self.progresso()
-        self.close()
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.progresso)
+        self.timer.start(18)
         
     def progresso(self):       
-        self.main = NewWindow()
-        self.main.show()
+        
+        global counter
+
+        if counter > 100:
+           self.timer.stop()
+           self.main = NewWindow()
+           self.main.show()
+           self.close()
+        counter += 1
 
 if __name__ == '__main__':
     qt = QApplication(argv)
     window = Intro() 
+    window.show()
     exit(qt.exec_())
