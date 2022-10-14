@@ -14,7 +14,6 @@ from re import search
 import time 
 
 
-
 counter = 0
 
 
