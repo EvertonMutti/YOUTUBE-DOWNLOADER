@@ -11,11 +11,25 @@ from Design.Design import *
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 from PyQt5 import QtGui
 from re import search
-import time 
+from threading import Thread
 
 
 counter = 0
 
+class ThreadWithReturnValue(Thread):
+    
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs={}, Verbose=None):
+        Thread.__init__(self, group, target, name, args, kwargs)
+        self._return = None
+
+    def run(self):
+        if self._target is not None:
+            self._return = self._target(*self._args,
+                                                **self._kwargs)
+    def join(self, *args):
+        Thread.join(self, *args)
+        return self._return
 
 class NewWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent = None):
@@ -58,7 +72,20 @@ class NewWindow(QMainWindow, Ui_MainWindow):
             mensagem.exec()
             
         else:
-            self.Download()
+            try:
+                ThreadWithReturnValue(target = Download,
+                       args=(self.le_Link.text(),self.le_Caminho.text()
+                             ,self.rb_Mp4.isChecked(), self.rb_Mp3.isChecked(),
+                             self.cb_Video.isChecked()), demon = True).start()
+            except Exception:
+                mensagem = QMessageBox()
+                mensagem.setWindowTitle('Alerta')      
+                mensagem.setWindowIcon(QtGui.QIcon('Icon.png'))
+                mensagem.setIcon(QMessageBox.Information)
+                mensagem.setStyleSheet ( "QLabel{AlignHCenter;}" )
+                mensagem.setStandardButtons(QMessageBox.Ok)
+                mensagem.setText('Ocorreu algum erro, verifique o link de download ou o caminho da pasta')
+                mensagem.exec()    
             
         #if (self.le_Link.text()) != None and (self.le_Caminho.text()) != None:
             #self.Download()
@@ -80,39 +107,6 @@ class NewWindow(QMainWindow, Ui_MainWindow):
             )
         self.le_Caminho.setText(path)
         
-    def on_progress(self, vid, chunk, bytes_remaining):
-        total_size = vid.filesize
-        bytes_downloaded = total_size - bytes_remaining
-        percentage_of_completion = bytes_downloaded / total_size * 100
-        percentage_of_completion = round(percentage_of_completion,2)
-        self.progressBar.setProperty("value", percentage_of_completion)
-
-    def complete_callback(self, stream, file_handle):
-        print("downloading finished")
-        
-    def Download(self):
-        link = self.le_Link.text()
-        yt = YouTube(link, on_progress_callback = self.on_progress, on_complete_callback=self.complete_callback)
-        try:
-            if (self.rb_Mp4.isChecked()):
-                if (self.cb_Video.isChecked()):
-                    stream = yt.streams.filter(file_extension='mp4').get_highest_resolution()
-                else:
-                    stream = yt.streams.filter(only_audio= True, file_extension='mp4').last() #order_by('resolution')
-                stream.download(self.le_Caminho.text())
-            elif (self.rb_Mp3.isChecked()):
-                stream = yt.streams.filter(only_audio= True, file_extension='mp4').last()
-                stream.download(self.le_Caminho.text(), filename = f'{yt.title}.mp3')
-                
-        except Exception:
-            mensagem = QMessageBox()
-            mensagem.setWindowTitle('Alerta')      
-            mensagem.setWindowIcon(QtGui.QIcon('Icon.png'))
-            mensagem.setIcon(QMessageBox.Information)
-            mensagem.setStyleSheet ( "QLabel{AlignHCenter;}" )
-            mensagem.setStandardButtons(QMessageBox.Ok)
-            mensagem.setText('Ocorreu algum erro, verifique o link de download ou o caminho da pasta')
-            mensagem.exec()
    
 class Intro(QMainWindow, Splash_Intro):
     def __init__(self, parent = None):
@@ -131,13 +125,41 @@ class Intro(QMainWindow, Splash_Intro):
 
         if counter > 100:
            self.timer.stop()
-           self.main = NewWindow()
-           self.main.show()
            self.close()
         counter += 1
+        
+def on_progress(vid, chunk, bytes_remaining):
+    total_size = vid.filesize
+    bytes_downloaded = total_size - bytes_remaining
+    percentage_of_completion = bytes_downloaded / total_size * 100
+    percentage_of_completion = round(percentage_of_completion,2)
+    main.progressBar.setProperty("value", percentage_of_completion)
 
+def complete_callback( stream, file_handle):
+    print("downloading finished")
+        
+def Download(link, path, mp4, mp3, video):
+    yt = YouTube(link, on_progress_callback = on_progress, on_complete_callback=complete_callback)
+    try:
+        if (mp4):
+            if (video):
+                stream = yt.streams.filter(file_extension='mp4').get_highest_resolution()
+            else:
+                stream = yt.streams.filter(only_audio= True, file_extension='mp4').last() #order_by('resolution')
+            stream.download(path)
+        elif (mp3):
+            stream = yt.streams.filter(only_audio= True, file_extension='mp4').last()
+            stream.download(path, filename = f'{yt.title}.mp3')              
+        return True
+                
+    except Exception:
+        return False
+            
 if __name__ == '__main__':
     qt = QApplication(argv)
     window = Intro() 
     window.show()
+    qt.exec_()
+    main = NewWindow()
+    main.show()
     exit(qt.exec_())
